@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
-// import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 import { v2 as cloudinary } from 'cloudinary';
 
 cloudinary.config({
@@ -13,18 +13,35 @@ cloudinary.config({
 @Injectable()
 export class PostService {
   async create(createPostDto: CreatePostDto) {
-    const { image } = createPostDto;
-    const response = await cloudinary.uploader.upload(image[0]);
+    const { title, description, image, postScope } = createPostDto;
+    const { secure_url } = await cloudinary.uploader.upload(image[0]);
+    const {
+      architecture,
+      civilEngineering,
+      industrialEngineering,
+      systemsEngineering,
+    } = postScope;
 
-    // const { title, description, image, postScope } = createPostDto;
-    // const {
-    //   architecture,
-    //   civilEngineering,
-    //   industrialEngineering,
-    //   systemsEngineering,
-    // } = postScope;
+    const prisma = new PrismaClient();
 
-    // const prisma = new PrismaClient();
+    const response = await prisma.post.create({
+      include: {
+        postScope: true,
+      },
+      data: {
+        title,
+        description,
+        image: [secure_url],
+        postScope: {
+          create: {
+            architecture,
+            civilEngineering,
+            industrialEngineering,
+            systemsEngineering,
+          },
+        },
+      },
+    });
 
     return response;
   }
